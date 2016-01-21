@@ -28,11 +28,11 @@ var defaultConfig = {
 	marginright : 20,
 	xOffset : 10,
 	yOffset : 10,
-	marginbottom:50,
-	paginationX: 10,
-	paginationY: 10,
-	pagina:1,
-	columnWidth:null
+	marginbottom:50,//extra margin bottom to correct page overflows with big amount of data.
+	pagetionX: 10,//Coordinate X for pagination
+	pagetionY: 10,//Coordinate Y for pagination
+	page:1,//count for pages (maybe move this to other position)
+	columnWidth:null//array for customize colums widht. Example: columnWidth:[20,100,100]. all columns in table should be defiend
 };
 
 //draws table on the document
@@ -72,16 +72,16 @@ jsPDFAPI.drawTable = function(table_DATA,config) {
 			initPDF(tabledata, defaultConfig, false);
 			j = cSplitIndex[i];
 			if ((i + 1) != cSplitIndex.length) {
-				//pagina inicial
-				if(defaultConfig.pagina == 1){
-					doc.text(defaultConfig.paginationX,defaultConfig.paginationY,defaultConfig.pagina.toString());
-					defaultConfig.pagina++;
+				//first page
+				if(defaultConfig.page == 1){
+					doc.text(defaultConfig.pagetionX,defaultConfig.pagetionY,defaultConfig.page.toString());
+					defaultConfig.page++;
 				}
 				doc.addPage();
 				
-				//resto de paginas
-				doc.text(defaultConfig.paginationX,defaultConfig.paginationY,defaultConfig.pagina.toString());
-				defaultConfig.pagina++;
+				//rest pages
+				doc.text(defaultConfig.pagetionX,defaultConfig.pagetionY,defaultConfig.page.toString());
+				defaultConfig.page++;
 				
 			}
 		}
@@ -164,6 +164,7 @@ function initPDF(data, marginConfig, firstpage) {
 	height = dimensions[2] / rowCount;
 	dimensions[3] = calculateDim(data, dimensions);
 	
+	//if customized colums widht is set, sum all new widhts
 	if(defaultConfig.columnWidth != null){
 		sum = 0;
 		for(count = 0;count< columnCount ;count++){
@@ -209,11 +210,15 @@ function insertData(rowCount, columnCount, dimensions, data, brControl) {
 	for (var i = 0; i < rowCount; i++) {
 		obj = data[i];
 		x = dimensions[0] + xOffset;
+		
+		//index for columnWidth
 		var i_col = 0;
+		
 		for (var key in obj) {
 			if (obj.hasOwnProperty(key)) {
 
 				cell = (obj[key] ? obj[key] : '-') + '';
+				//new case for customized columnWidth. 
 				if( defaultConfig.columnWidth != null){
 					if (((cell.length * fontSize) + xOffset) > (defaultConfig.columnWidth[i_col])) {
 						iTexts = cell.length * fontSize;
@@ -293,10 +298,9 @@ function drawColumns(i, dimensions) {
 	var h = dimensions[3];
 
 	for (var j = 0; j < i; j++) {
+		//if defined customized columnWidth
 		if(defaultConfig.columnWidth != null){
-		//$('.buscador').append(i+' - '+defaultConfig.columnWidth.length + ' - '+ defaultConfig.columnWidth[j]+'<br>');
-	
-		w= defaultConfig.columnWidth[j];
+			w= defaultConfig.columnWidth[j];
 		}
 	
 		doc.rect(x, y, w, h);
@@ -345,6 +349,7 @@ function calculateDim(data, dimensions) {
 	for (var i = 0; i < heights.length; i++) {
 		value += heights[i];
 		indexHelper += heights[i];
+		
 		if (indexHelper > (doc.internal.pageSize.height-defaultConfig.marginbottom - pageStart)) {
 			SplitIndex.push(i);
 			indexHelper = 0;
