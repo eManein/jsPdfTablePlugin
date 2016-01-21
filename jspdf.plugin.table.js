@@ -27,7 +27,12 @@ var defaultConfig = {
 	tablestart : 20,
 	marginright : 20,
 	xOffset : 10,
-	yOffset : 10
+	yOffset : 10,
+	marginbottom:50,
+	paginationX: 10,
+	paginationY: 10,
+	pagina:1,
+	columnWidth:null
 };
 
 //draws table on the document
@@ -67,7 +72,17 @@ jsPDFAPI.drawTable = function(table_DATA,config) {
 			initPDF(tabledata, defaultConfig, false);
 			j = cSplitIndex[i];
 			if ((i + 1) != cSplitIndex.length) {
+				//pagina inicial
+				if(defaultConfig.pagina == 1){
+					doc.text(defaultConfig.paginationX,defaultConfig.paginationY,defaultConfig.pagina.toString());
+					defaultConfig.pagina++;
+				}
 				doc.addPage();
+				
+				//resto de paginas
+				doc.text(defaultConfig.paginationX,defaultConfig.paginationY,defaultConfig.pagina.toString());
+				defaultConfig.pagina++;
+				
 			}
 		}
 	} else {
@@ -136,6 +151,7 @@ function initPDF(data, marginConfig, firstpage) {
 	}
 
 	dimensions[2] = doc.internal.pageSize.width - marginConfig.xstart - 20 - marginConfig.marginright;
+
 	dimensions[3] = 250;
 	dimensions[4] = marginConfig.ystart;
 	dimensions[5] = marginConfig.marginright;
@@ -147,6 +163,16 @@ function initPDF(data, marginConfig, firstpage) {
 	width = dimensions[2] / columnCount;
 	height = dimensions[2] / rowCount;
 	dimensions[3] = calculateDim(data, dimensions);
+	
+	if(defaultConfig.columnWidth != null){
+		sum = 0;
+		for(count = 0;count< columnCount ;count++){
+			sum+=defaultConfig.columnWidth[count];
+		}
+		
+		dimensions[2] = sum;
+	}
+	
 
 };
 
@@ -183,32 +209,58 @@ function insertData(rowCount, columnCount, dimensions, data, brControl) {
 	for (var i = 0; i < rowCount; i++) {
 		obj = data[i];
 		x = dimensions[0] + xOffset;
+		var i_col = 0;
 		for (var key in obj) {
 			if (obj.hasOwnProperty(key)) {
 
 				cell = (obj[key] ? obj[key] : '-') + '';
-
-				if (((cell.length * fontSize) + xOffset) > (width)) {
-					iTexts = cell.length * fontSize;
-					start = 0;
-					end = 0;
-					ih = 0;
-					if ((brControl) && (i === 0)) {
-						doc.setFont(doc.getFont().fontName, "bold");
+				if( defaultConfig.columnWidth != null){
+					if (((cell.length * fontSize) + xOffset) > (defaultConfig.columnWidth[i_col])) {
+						iTexts = cell.length * fontSize;
+						start = 0;
+						end = 0;
+						ih = 0;
+						if ((brControl) && (i === 0)) {
+							doc.setFont(doc.getFont().fontName, "bold");
+						}
+						for (var j = 0; j < iTexts; j++) {
+							end += Math.floor(2 * defaultConfig.columnWidth[i_col] / fontSize) - Math.ceil(xOffset / fontSize);
+							doc.text(x, y + ih, cell.substring(start, end));
+							start = end;
+							ih += fontSize;
+						}
+					} else {
+						if ((brControl) && (i === 0)) {
+							doc.setFont("times", "bold");
+						}
+						doc.text(x, y, cell);
 					}
-					for (var j = 0; j < iTexts; j++) {
-						end += Math.floor(2 * width / fontSize) - Math.ceil(xOffset / fontSize);
-						doc.text(x, y + ih, cell.substring(start, end));
-						start = end;
-						ih += fontSize;
+					x += defaultConfig.columnWidth[i_col];
+					i_col++;
+				}else{
+					if (((cell.length * fontSize) + xOffset) > (width)) {
+						iTexts = cell.length * fontSize;
+						start = 0;
+						end = 0;
+						ih = 0;
+						if ((brControl) && (i === 0)) {
+							doc.setFont(doc.getFont().fontName, "bold");
+						}
+						for (var j = 0; j < iTexts; j++) {
+							end += Math.floor(2 * width / fontSize) - Math.ceil(xOffset / fontSize);
+							doc.text(x, y + ih, cell.substring(start, end));
+							start = end;
+							ih += fontSize;
+						}
+					} else {
+						if ((brControl) && (i === 0)) {
+							doc.setFont("times", "bold");
+						}
+						doc.text(x, y, cell);
 					}
-				} else {
-					if ((brControl) && (i === 0)) {
-						doc.setFont("times", "bold");
-					}
-					doc.text(x, y, cell);
+					x += dimensions[2] / columnCount;
+				
 				}
-				x += dimensions[2] / columnCount;
 			}
 		}
 		doc.setFont("times", "normal");
@@ -241,6 +293,12 @@ function drawColumns(i, dimensions) {
 	var h = dimensions[3];
 
 	for (var j = 0; j < i; j++) {
+		if(defaultConfig.columnWidth != null){
+		//$('.buscador').append(i+' - '+defaultConfig.columnWidth.length + ' - '+ defaultConfig.columnWidth[j]+'<br>');
+	
+		w= defaultConfig.columnWidth[j];
+		}
+	
 		doc.rect(x, y, w, h);
 		x += w;
 	}
@@ -287,7 +345,7 @@ function calculateDim(data, dimensions) {
 	for (var i = 0; i < heights.length; i++) {
 		value += heights[i];
 		indexHelper += heights[i];
-		if (indexHelper > (doc.internal.pageSize.height - pageStart)) {
+		if (indexHelper > (doc.internal.pageSize.height-defaultConfig.marginbottom - pageStart)) {
 			SplitIndex.push(i);
 			indexHelper = 0;
 			pageStart = dimensions[4] + 30;
@@ -322,4 +380,3 @@ function drawRows(i, dimensions, hrControl) {
 	
 
 }(jsPDF.API));
-
